@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地音频剪辑器 - 离线版</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1><i class="fas fa-music"></i> 本地音频剪辑器</h1>
+            <p class="subtitle">完全离线 · 隐私安全 · 简单高效</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 文件上传区 -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3>点击或拖拽音频文件到这里</h3>
+                    <p class="formats">支持 MP3, WAV, OGG, FLAC, AAC, M4A 等格式</p>
+                    <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+                </div>
+
+                <div class="controls-row">
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <i class="fas fa-trash-alt"></i> 清空列表
+                    </button>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="keepFormat" checked>
+                        保持原格式
+                    </label>
+                </div>
+            </section>
+
+            <!-- 文件列表 -->
+            <section class="file-list-section" id="fileListSection">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin-bottom: 0;"><i class="fas fa-list"></i> 裁剪列表</h2>
+                    <button id="batchTrimBtn" class="btn btn-primary" style="display: none;">
+                        <i class="fas fa-cut"></i> 批量裁剪
+                    </button>
+                </div>
+                <div class="file-list" id="fileList">
+                    <!-- 文件列表会动态插入到这里 -->
+                </div>
+            </section>
+
+            <!-- 波形编辑器 -->
+            <section class="editor-section" id="editorSection">
+                <h2><i class="fas fa-wave-square"></i> 波形编辑器</h2>
+                <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">
+                    <i class="fas fa-info-circle"></i> 提示：<strong>点击波形</strong>移动播放指针 | <strong>拖拽框选</strong>创建选区 | <strong>拖动边缘</strong>调整选区
+                </p>
+
+                <div class="waveform-container">
+                    <div class="waveform" id="waveform"></div>
+
+                    <div class="time-controls">
+                        <div class="time-input">
+                            <label>开始时间</label>
+                            <input type="text" id="startTime" value="00:00.000" placeholder="HH:MM:SS.mmm">
+                        </div>
+
+                        <div class="time-input">
+                            <label>结束时间</label>
+                            <input type="text" id="endTime" value="00:30.000" placeholder="HH:MM:SS.mmm">
+                        </div>
+
+                        <div class="duration-display">
+                            <span id="selectedDuration">选中: 0:30.000</span>
+                            <span id="totalDuration">总时长: 0:00</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-controls">
+                        <button id="playBtn" class="btn btn-control">
+                            <i class="fas fa-play"></i> 播放
+                        </button>
+                        <button id="pauseBtn" class="btn btn-control">
+                            <i class="fas fa-pause"></i> 暂停
+                        </button>
+                        <button id="playSelectionBtn" class="btn btn-control">
+                            <i class="fas fa-forward"></i> 播放选区
+                        </button>
+                        <button id="resetRegionBtn" class="btn btn-control" title="重置选区到初始状态">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                        
+                        <!-- 音量控制 -->
+                        <div class="volume-control-inline">
+                            <i class="fas fa-volume-up"></i>
+                            <input type="range" id="volumeSlider" min="0" max="200" value="100" step="5">
+                            <span id="volumeValue">100%</span>
+                        </div>
+                        
+                        <div class="zoom-controls">
+                            <button id="zoomIn" class="btn btn-small">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button id="zoomOut" class="btn btn-small">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button id="trimBtn" class="btn btn-primary btn-large">
+                            <i class="fas fa-cut"></i> 修剪选区
+                        </button>
+                        <button id="clearRegionBtn" class="btn btn-secondary btn-large">
+                            <i class="fas fa-eraser"></i> 清除选区
+                        </button>
+                    </div>
+
+                    <div class="advanced-options">
+                        <div class="format-select">
+                            <label>输出格式:</label>
+                            <select id="outputFormat">
+                                <option value="wav">WAV</option>
+                                <option value="mp3">MP3 (实验性)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="fade-controls">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableFade">
+                                淡入淡出
+                            </label>
+                            <div id="fadeOptions" style="display: none; margin-top: 0.5rem;">
+                                <label style="font-size: 0.9rem;">淡入: <input type="number" id="fadeIn" value="0.5" step="0.1" min="0" max="5" style="width: 60px;"> 秒</label>
+                                <label style="font-size: 0.9rem; margin-left: 1rem;">淡出: <input type="number" id="fadeOut" value="0.5" step="0.1" min="0" max="5" style="width: 60px;"> 秒</label>
+                            </div>
+                        </div>
+                        
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="normalizeAudio">
+                            音量标准化
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 裁剪结果 -->
+            <section class="results-section" id="resultsSection">
+                <h2><i class="fas fa-download"></i> 裁剪结果</h2>
+                <div class="results-list" id="resultsList">
+                    <!-- 裁剪结果会动态插入到这里 -->
+                </div>
+
+                <div class="batch-actions">
+                    <button id="downloadAllBtn" class="btn btn-success">
+                        <i class="fas fa-file-archive"></i> 打包下载 (ZIP)
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>💡 提示: 所有处理均在您的浏览器中完成,文件不会上传到任何服务器。</p>
+            <p class="footer-info">
+                <span><i class="fas fa-code"></i> 本地Web应用</span>
+                <span><i class="fas fa-shield-alt"></i> 完全离线</span>
+                <span><i class="fas fa-bolt"></i> 快速处理</span>
+            </p>
+            <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">
+                快捷键: Space - 播放/暂停 | Ctrl+S - 开始裁剪 | 鼠标拖拽波形 - 选择区间
+            </p>
+        </footer>
+    </div>
+
+    <!-- 库文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.regions.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <!-- 应用脚本 -->
+    <script src="audio-processor.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
